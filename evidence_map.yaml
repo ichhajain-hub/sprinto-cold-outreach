@@ -1,0 +1,135 @@
+# Sprinto cold outreach — qualification rules.
+# qualify.py loads this; no if-statements buried in Python.
+# Edit this file to tune the ICP; no code change needed.
+
+gates:
+  - id: G1
+    name: saas
+    question: Is this a SaaS company?
+    data: subscription software, product login, pricing plans
+    sources: [homepage, google_news]
+    sufficient_when:
+      any_of:
+        - recurring_pricing_pattern         # /mo, /yr, "per user", "per seat"
+        - login_or_trial_link_on_app_subdomain
+        - explicit_saas_description
+    attempt_limit: 3
+    on_unanswered: drop
+    short_circuit_fail:
+      reason: not SaaS (agency, services, D2C, hardware)
+      disqualifying_examples:
+        - "we build custom software for..."
+        - physical product shipping
+        - "book a consultation"
+
+  - id: G2
+    name: funding_stage
+    question: Is the company Series A, B, or C?
+    data: latest funding round + date
+    sources:
+      - google_news: "{company} raises Series"
+      - company_press_or_blog
+    sufficient_when:
+      any_of:
+        - named_series_round: [A, B, C]
+    attempt_limit: 3
+    on_unanswered: drop
+    short_circuit_fail:
+      reason: wrong stage
+      disqualifying:
+        - seed
+        - pre_seed
+        - series_d_or_later
+        - public
+        - acquired
+
+  - id: G3
+    name: audit_readiness
+    question: Preparing for or in need of a SOC 2 / ISO 27001 audit?
+    data:
+      - in_progress_statements              # "SOC 2 in progress", "working toward ISO 27001"
+      - open_security_grc_roles
+      - enterprise_tier_promising_sso_audit_logs_security_reviews
+    sources: [careers_page, about_page, security_page, google_news]
+    sufficient_when:
+      any_of:
+        - in_progress_statement_found
+        - open_compliance_or_security_job
+        - enterprise_tier_without_listed_certification
+    attempt_limit:
+      pages: 3
+      searches: 1
+    on_unanswered: qualify_and_flag         # G3 result carries flag_email_as_question=true
+    short_circuit_fail: null                 # G3 never short-circuits
+
+supporting_signals:
+  - id: S1
+    name: headcount_50_200
+    sources: [linkedin_snippet_via_search, about_or_team_page, hunter_company_data]
+    sufficient_when:
+      number_or_range_overlaps: [50, 200]
+    attempt_limit: 2
+    on_unanswered: flag
+    score_weight: 34
+
+  - id: S2
+    name: clients
+    sources: [logo_strip, "/customers", "/case-studies", "/pricing"]
+    sufficient_when:
+      any_of:
+        - two_plus_recognisable_enterprise_logos
+        - one_plus_enterprise_case_study
+        - sells_into_us_or_eu
+    attempt_limit: 2
+    on_unanswered: ignore
+    score_weight: 33
+
+  - id: S3
+    name: industry
+    sources: [homepage, product_pages, privacy_policy]
+    allowed_values: [fintech, healthtech, hrtech, devtools, other]
+    attempt_limit: 1
+    on_unanswered: ignore
+    score_weight: 33
+    # Internal tiering: fintech/healthtech = full 33, devtools/hrtech = 20, other = 10
+    tiering:
+      fintech: 33
+      healthtech: 33
+      hrtech: 20
+      devtools: 20
+      other: 10
+
+  - id: S4
+    name: cloud_stack
+    sources: [subprocessors_list, privacy_policy_or_dpa, job_descriptions, docs]
+    sufficient_when:
+      any_of: [aws, gcp, azure]
+    attempt_limit: 1
+    on_unanswered: ignore
+    score_weight: 0                          # hook-only, no score contribution
+    hook_only: true
+
+decision_rule:
+  qualify_when: "G1=pass AND G2=pass AND G3 in (pass, unknown)"
+  flag_when: "G3=unknown"                    # email_draft uses question-hook
+  drop_when: "any_gate_failed"
+
+worst_case:
+  if_scrape_empty: use_search_news_only
+  if_G1_still_unanswered:
+    decision: drop
+    reason: insufficient data
+
+poc_title_priority:
+  tier_1: [Head of Security, CISO, Compliance Lead, GRC Lead, Head of GRC, Security Lead, Head of Compliance]
+  tier_2: [CTO, VP Engineering, VP of Engineering, Head of Engineering]
+  tier_3: [CEO, Co-founder, Founder]        # only when employee_count < 80 OR S1 unknown
+tier_3_headcount_ceiling: 80
+hunter_min_confidence: 70
+
+paths:
+  scrape_subpaths: ["/", "/pricing", "/about", "/careers", "/security", "/trust", "/customers"]
+  scrape_timeout_seconds: 10
+  user_agent: >-
+    Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36
+    (KHTML, like Gecko) Chrome/124.0 Safari/537.36

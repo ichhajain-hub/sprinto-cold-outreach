@@ -1,0 +1,22 @@
+# Secrets
+.env
+
+# Runtime artifacts
+cache/
+runs/
+
+# Unrelated local tools and course material
+claude/
+*.pdf
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# OS/IDE
+.DS_Store
+.idea/
+.vscode/

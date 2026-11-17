@@ -1,0 +1,10 @@
+{
+  "_comment": "Manual Apollo fallback. Key = domain, value = {first_name, last_name, email, title, linkedin}. Used when Hunter returns no match or is unavailable.",
+  "_example.com": {
+    "first_name": "Jane",
+    "last_name": "Doe",
+    "email": "jane@example.com",
+    "title": "CISO",
+    "linkedin": "https://linkedin.com/in/jane-doe"
+  }
+}

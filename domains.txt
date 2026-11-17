@@ -1,0 +1,12 @@
+# Batch test — 5 real companies spanning the ICP boundary.
+# Expected spread:
+#   cal.com       — Series C scheduling SaaS, small-mid team           -> likely QUALIFY
+#   clay.com      — Series B sales-enrichment SaaS, ~100 people        -> likely QUALIFY
+#   warp.dev      — Series B devtools (terminal), small team           -> likely QUALIFY
+#   stripe.com    — very late-stage payments, >6000 employees          -> likely DROP (G2, wrong stage)
+#   basecamp.com  — bootstrapped by 37signals, never raised a Series   -> likely DROP (G2, no Series)
+cal.com
+clay.com
+warp.dev
+stripe.com
+basecamp.com
