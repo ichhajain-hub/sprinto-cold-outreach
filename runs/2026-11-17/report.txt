@@ -1,0 +1,23 @@
+────────────────────────────────────────────────────────────────────
+ Sprinto cold outreach · 2026-11-17 · 5 domain(s)
+────────────────────────────────────────────────────────────────────
+
+ ✗ basecamp.com                                drop · G2 unresolved
+     ↳ G2 unknown: No evidence found indicating Basecamp has raised a Series A, B, or...
+
+ ✓ cal.com                                  qualify · 43/100 · sent
+     ↳ Keith Williams · Director of Engineering · tier 2 · 85%
+     ↳ "Cal.com audit renewals and engineering time" · 72 w · sent
+
+ · clay.com                                                  no PoC
+     ↳ Hunter had 10 emails, no match at tier 1/2/3 with confidence >= 70%
+
+ ✗ stripe.com                                        drop · G2 fail
+     ↳ G2 fail: Stripe raised a Series F funding round and subsequent multi-billion...
+
+ ✗ warp.dev                                    drop · G2 unresolved
+     ↳ G2 unknown: News reports indicate Warp raised $23M to $75.1M across funding rou...
+
+────────────────────────────────────────────────────────────────────
+ 1 sent · 1 no PoC · 3 dropped · trace: runs/2026-11-17/
+────────────────────────────────────────────────────────────────────

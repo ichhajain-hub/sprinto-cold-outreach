@@ -1,0 +1,149 @@
+{
+  "domain": "basecamp.com",
+  "steps": {
+    "scrape": {
+      "pages": [
+        {
+          "url": "https://basecamp.com/",
+          "status": "ok",
+          "chars": 8088
+        },
+        {
+          "url": "https://basecamp.com/pricing",
+          "status": "ok",
+          "chars": 13302
+        },
+        {
+          "url": "https://basecamp.com/about",
+          "status": "ok",
+          "chars": 3617
+        },
+        {
+          "url": "https://basecamp.com/careers",
+          "status": "missing",
+          "chars": 0
+        },
+        {
+          "url": "https://basecamp.com/security",
+          "status": "ok",
+          "chars": 4949
+        },
+        {
+          "url": "https://basecamp.com/trust",
+          "status": "ok",
+          "chars": 6410
+        },
+        {
+          "url": "https://basecamp.com/customers",
+          "status": "ok",
+          "chars": 174963
+        }
+      ]
+    },
+    "extract": {
+      "company_name": {
+        "value": "Basecamp",
+        "source_url": "https://basecamp.com/"
+      },
+      "one_line_description": {
+        "value": "The famously straightforward, easiest-to-use project management platform.",
+        "source_url": "https://basecamp.com/"
+      },
+      "business_model": {
+        "value": "freemium SaaS",
+        "source_url": "https://basecamp.com/pricing"
+      },
+      "pricing_signals": {
+        "value": [
+          "$29/mo for Freelancer package with 3 projects, 10 GB storage, up to 5 users",
+          "Start a 30-day free trial",
+          "Pro at $79/mo with 8 projects, 25 GB storage, up to 10 users",
+          "Pro Plus at $99/mo with 12 projects, 100 GB storage, up to 15 users",
+          "Pro Unlimited at $199/mo, billed annually for unlimited projects and users",
+          "1 project free",
+          "10% off for registered 501(c)(3) non-profits, and 100% free for K-12, homeschoolers, or Universities"
+        ],
+        "source_url": "https://basecamp.com/pricing"
+      },
+      "login_or_trial_link": {
+        "value": "https://app.basecamp.com/signup/account/new?plan=freelancer_v2",
+        "source_url": "https://basecamp.com/pricing"
+      },
+      "compliance_mentions": {
+        "value": [
+          "GDPR",
+          "UK GDPR",
+          "CCPA",
+          "FERPA",
+          "PCI DSS"
+        ],
+        "source_url": "https://basecamp.com/trust"
+      },
+      "open_roles": {
+        "value": [],
+        "source_url": null
+      },
+      "customer_logos": {
+        "value": [
+          "Moore Communications Group",
+          "Full Sail University",
+          "Penn State OEM",
+          "Autotrader",
+          "Zendesk",
+          "NASA",
+          "Groupon",
+          "Mattel",
+          "AIG Inc.",
+          "3M"
+        ],
+        "source_url": "https://basecamp.com/customers"
+      },
+      "industry": {
+        "value": "other",
+        "source_url": "https://basecamp.com/"
+      },
+      "cloud_provider": {
+        "value": null,
+        "source_url": null
+      },
+      "employee_count": {
+        "value": null,
+        "source_url": null
+      },
+      "funding_mentions": {
+        "value": [],
+        "source_url": null
+      }
+    },
+    "qualify": {
+      "domain": "basecamp.com",
+      "decision": "drop",
+      "reason": "G2 unanswered (funding stage not confirmed)",
+      "gates": [
+        {
+          "gate_id": "G1",
+          "name": "saas",
+          "verdict": "pass",
+          "evidence": "recurring pricing ($29/mo for Freelancer package with 3 projects, 10 GB storage, up to 5 users); login link https://app.basecamp.com/signup/account/new?plan=freelancer_v2; business_model=\"freemium saas\"",
+          "source_url": "https://basecamp.com/pricing",
+          "attempts": {},
+          "flag_email_as_question": false
+        },
+        {
+          "gate_id": "G2",
+          "name": "funding_stage",
+          "verdict": "unknown",
+          "evidence": "No evidence found indicating Basecamp has raised a Series A, B, or C funding round.",
+          "source_url": null,
+          "attempts": {
+            "fetch_page": 3,
+            "search_news": 3
+          },
+          "flag_email_as_question": false
+        }
+      ],
+      "signals": [],
+      "priority_score": 0
+    }
+  }
+}

@@ -1,0 +1,173 @@
+{
+  "domain": "stripe.com",
+  "steps": {
+    "scrape": {
+      "pages": [
+        {
+          "url": "https://stripe.com/",
+          "status": "ok",
+          "chars": 15404
+        },
+        {
+          "url": "https://stripe.com/pricing",
+          "status": "ok",
+          "chars": 13319
+        },
+        {
+          "url": "https://stripe.com/about",
+          "status": "ok",
+          "chars": 2620
+        },
+        {
+          "url": "https://stripe.com/careers",
+          "status": "ok",
+          "chars": 8900
+        },
+        {
+          "url": "https://stripe.com/security",
+          "status": "ok",
+          "chars": 16534
+        },
+        {
+          "url": "https://stripe.com/trust",
+          "status": "missing",
+          "chars": 0
+        },
+        {
+          "url": "https://stripe.com/customers",
+          "status": "ok",
+          "chars": 10267
+        }
+      ]
+    },
+    "extract": {
+      "company_name": {
+        "value": "Stripe",
+        "source_url": "https://stripe.com/"
+      },
+      "one_line_description": {
+        "value": "Financial infrastructure to grow your revenue.",
+        "source_url": "https://stripe.com/"
+      },
+      "business_model": {
+        "value": "self-serve + enterprise",
+        "source_url": "https://stripe.com/pricing"
+      },
+      "pricing_signals": {
+        "value": [
+          "pay-as-you-go pricing",
+          "No setup fees, monthly fees, or hidden fees",
+          "Volume discounts",
+          "Multi-product discounts",
+          "Custom pricing"
+        ],
+        "source_url": "https://stripe.com/pricing"
+      },
+      "login_or_trial_link": {
+        "value": "https://dashboard.stripe.com/login?redirect=https%3A%2F%2Fdocs.stripe.com%2Fsecurity",
+        "source_url": "https://stripe.com/security"
+      },
+      "compliance_mentions": {
+        "value": [
+          "PCI Service Provider Level 1",
+          "SOC 1",
+          "SOC 2 Type II",
+          "SOC 3",
+          "EMVCo Level 1 and 2",
+          "PA-DSS",
+          "NIST Cybersecurity Framework",
+          "CBPR",
+          "PRP",
+          "EU-US Data Privacy Framework"
+        ],
+        "source_url": "https://stripe.com/security"
+      },
+      "open_roles": {
+        "value": [],
+        "source_url": null
+      },
+      "customer_logos": {
+        "value": [
+          "Rivian",
+          "Crumbl",
+          "Figma",
+          "Cursor",
+          "Squarespace",
+          "Lovable",
+          "Twilio",
+          "Substack",
+          "Goodtill",
+          "Atlassian",
+          "Lightspeed",
+          "Lyft",
+          "Instacart",
+          "Shopify",
+          "Kickstarter",
+          "Postmates",
+          "Meetup",
+          "Typeform",
+          "GitHub",
+          "Salesforce",
+          "Zapier",
+          "Slack",
+          "Jobber",
+          "WooCommerce",
+          "Xero",
+          "Dermalogica",
+          "La Redoute",
+          "KeyMe",
+          "Amazon",
+          "Bodum",
+          "Mixtiles"
+        ],
+        "source_url": "https://stripe.com/customers"
+      },
+      "industry": {
+        "value": "fintech",
+        "source_url": "https://stripe.com/"
+      },
+      "cloud_provider": {
+        "value": "aws",
+        "source_url": "https://stripe.com/security"
+      },
+      "employee_count": {
+        "value": null,
+        "source_url": null
+      },
+      "funding_mentions": {
+        "value": [],
+        "source_url": null
+      }
+    },
+    "qualify": {
+      "domain": "stripe.com",
+      "decision": "drop",
+      "reason": "G2 fail: Stripe raised a Series F funding round and subsequent multi-billion dollar rounds, placing it well beyond Series A, B, or C.",
+      "gates": [
+        {
+          "gate_id": "G1",
+          "name": "saas",
+          "verdict": "pass",
+          "evidence": "login link https://dashboard.stripe.com/login?redirect=https%3A%2F%2Fdocs.stripe.com%2Fsecurity; business_model=\"self-serve + enterprise\"",
+          "source_url": "https://stripe.com/security",
+          "attempts": {},
+          "flag_email_as_question": false
+        },
+        {
+          "gate_id": "G2",
+          "name": "funding_stage",
+          "verdict": "fail",
+          "evidence": "Stripe raised a Series F funding round and subsequent multi-billion dollar rounds, placing it well beyond Series A, B, or C.",
+          "source_url": "https://news.google.com/rss/articles/CBMirwFBVV95cUxNaWVrdWZQMjQ3Yi1YT3ZkMjFCSWUzZWg3NHh3SUhhM2RvdjJNaG9CNEkxNThEN29HSWk3blRqc255STh4LXlQZjNieTVlMDhfQjNORE83cW1SNHg3VHM1QUw5WGhqZ3dwSnQ2REMtelNVWGNveDFKVDBKbFpQMDhfOFIycWN3TkN3RTlnVmtPRk1CVmJINUY3Ul95eGM2aHdSR1dNMXprRzJGV1lPX3Rr?oc=5",
+          "attempts": {
+            "fetch_page": 0,
+            "search_news": 2
+          },
+          "flag_email_as_question": false
+        }
+      ],
+      "signals": [],
+      "priority_score": 0
+    }
+  }
+}

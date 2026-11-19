@@ -1,0 +1,6 @@
+domain,decision,reason,poc_name,poc_title,priority_score,email_sent
+cal.com,qualify,"G1,G2,G3 pass",Keith Williams,Director of Engineering,43,yes
+clay.com,qualify,"G1,G2,G3 pass; dropped: no PoC (Hunter had 10 emails, no match at tier 1/2/3 with confidence >= 70%; tier_3_allowed=True (headcount=None))",,,43,no
+warp.dev,drop,G2 unanswered (funding stage not confirmed),,,0,no
+stripe.com,drop,"G2 fail: Stripe raised a Series F funding round and subsequent multi-billion dollar rounds, placing it well beyond Series A, B, or C.",,,0,no
+basecamp.com,drop,G2 unanswered (funding stage not confirmed),,,0,no

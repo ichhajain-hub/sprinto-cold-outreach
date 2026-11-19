@@ -3,7 +3,7 @@
 
 # Runtime artifacts
 cache/
-runs/
+# runs/ is committed so reviewers can see the actual defensibility traces.
 
 # Unrelated local tools and course material
 claude/
@@ -20,3 +20,4 @@ venv/
 .DS_Store
 .idea/
 .vscode/
+.vercel

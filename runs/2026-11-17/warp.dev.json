@@ -1,0 +1,136 @@
+{
+  "domain": "warp.dev",
+  "steps": {
+    "scrape": {
+      "pages": [
+        {
+          "url": "https://warp.dev/",
+          "status": "ok",
+          "chars": 10028
+        },
+        {
+          "url": "https://warp.dev/pricing",
+          "status": "ok",
+          "chars": 10206
+        },
+        {
+          "url": "https://warp.dev/about",
+          "status": "ok",
+          "chars": 2667
+        },
+        {
+          "url": "https://warp.dev/careers",
+          "status": "ok",
+          "chars": 2368
+        },
+        {
+          "url": "https://warp.dev/security",
+          "status": "ok",
+          "chars": 4927
+        },
+        {
+          "url": "https://warp.dev/trust",
+          "status": "missing",
+          "chars": 0
+        },
+        {
+          "url": "https://warp.dev/customers",
+          "status": "ok",
+          "chars": 3628
+        }
+      ]
+    },
+    "extract": {
+      "company_name": {
+        "value": "Warp",
+        "source_url": "https://warp.dev/"
+      },
+      "one_line_description": {
+        "value": "Open Infrastructure for Cloud Software Factories",
+        "source_url": "https://warp.dev/"
+      },
+      "business_model": {
+        "value": "freemium SaaS",
+        "source_url": "https://warp.dev/pricing"
+      },
+      "pricing_signals": {
+        "value": [
+          "Free $0 /month",
+          "Build $20 /month",
+          "Max $200 /month",
+          "Business $50 /user /month",
+          "Enterprise Custom",
+          "Pay as you go $0 /month"
+        ],
+        "source_url": "https://warp.dev/pricing"
+      },
+      "login_or_trial_link": {
+        "value": "https://app.warp.dev/login?redirect_to=/upgrade",
+        "source_url": "https://warp.dev/pricing"
+      },
+      "compliance_mentions": {
+        "value": [
+          "SOC 2 Type 2"
+        ],
+        "source_url": "https://warp.dev/security"
+      },
+      "open_roles": {
+        "value": [],
+        "source_url": null
+      },
+      "customer_logos": {
+        "value": [
+          "Rectangle Health",
+          "Docker"
+        ],
+        "source_url": "https://warp.dev/customers"
+      },
+      "industry": {
+        "value": "devtools",
+        "source_url": "https://warp.dev/about"
+      },
+      "cloud_provider": {
+        "value": "gcp",
+        "source_url": "https://warp.dev/security"
+      },
+      "employee_count": {
+        "value": null,
+        "source_url": null
+      },
+      "funding_mentions": {
+        "value": [],
+        "source_url": null
+      }
+    },
+    "qualify": {
+      "domain": "warp.dev",
+      "decision": "drop",
+      "reason": "G2 unanswered (funding stage not confirmed)",
+      "gates": [
+        {
+          "gate_id": "G1",
+          "name": "saas",
+          "verdict": "pass",
+          "evidence": "recurring pricing (Free $0 /month); login link https://app.warp.dev/login?redirect_to=/upgrade; business_model=\"freemium saas\"",
+          "source_url": "https://warp.dev/pricing",
+          "attempts": {},
+          "flag_email_as_question": false
+        },
+        {
+          "gate_id": "G2",
+          "name": "funding_stage",
+          "verdict": "unknown",
+          "evidence": "News reports indicate Warp raised $23M to $75.1M across funding rounds, but the specific funding stage (Series A, B, or C) is not confirmed in the available results.",
+          "source_url": "https://news.google.com/rss/articles/CBMigwFBVV95cUxORE5LbkRzTzU0N1JNMzkxak1vQjVwbGljSHZrLWE1NkFaTVVvRmdBdHBQdnVSamlEQnNWVk9UUVg2TTlHYWJ5ZkxRMW1ZZ1h4eFc5NjZpVmV2NUh6cnhmUFFZbndVM2pzOU13Smx1UFdlQVYwRFlJZXZMNlVnQnpqMmhpTQ?oc=5",
+          "attempts": {
+            "fetch_page": 3,
+            "search_news": 3
+          },
+          "flag_email_as_question": false
+        }
+      ],
+      "signals": [],
+      "priority_score": 0
+    }
+  }
+}
