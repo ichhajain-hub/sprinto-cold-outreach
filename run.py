@@ -15,6 +15,7 @@ import argparse
 import csv
 import datetime as dt
 import json
+import os
 import sys
 import traceback
 from pathlib import Path
@@ -32,6 +33,7 @@ from pain_points import pain_points as _pains  # noqa: E402
 from email_draft import draft_email as _draft  # noqa: E402
 from send import send as _send                 # noqa: E402
 import report as _report                        # noqa: E402
+import db as _db                                # noqa: E402
 
 
 def _runs_dir() -> Path:
@@ -43,6 +45,10 @@ def _runs_dir() -> Path:
 def _write_trace(domain: str, trace: dict) -> Path:
     out = _runs_dir() / f"{domain}.json"
     out.write_text(json.dumps(trace, indent=2, default=str))
+    # Best-effort DB write; db.insert_run logs and swallows errors so the
+    # pipeline never crashes if Neon is unreachable.
+    if os.environ.get("DATABASE_URL"):
+        _db.insert_run(dt.date.today().isoformat(), domain, trace)
     return out
 
 

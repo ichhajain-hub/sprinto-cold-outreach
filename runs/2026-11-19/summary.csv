@@ -1,0 +1,2 @@
+domain,decision,reason,poc_name,poc_title,priority_score,email_sent
+linear.app,qualify,"G1,G2,G3 pass",Jamie Finnigan,Head of Security,53,yes
