@@ -1,7 +1,13 @@
 """Generate a static HTML dashboard from runs/<date>/*.json traces.
 
-Output: public/index.html — single self-contained file (CSS inlined, data baked
-in at build time). Vercel serves it as a plain static site; no backend.
+Output: public/index.html — single self-contained file (CSS + JS inline, data
+baked in at build time). Vercel serves it as a plain static site; no backend.
+
+Layout:
+  1. Funnel summary — four-stage conversion across all runs (or filtered date)
+  2. Date filter — all-time / per-batch
+  3. Emails sent — just the deliverables
+  4. Per-batch cards — full gate + signal detail, unchanged from v1
 
 Run this after a new batch:
     python3 run.py domains.txt
@@ -24,14 +30,60 @@ def _esc(s) -> str:
     return html.escape("" if s is None else str(s), quote=True)
 
 
-def _email_block(subject: str, body: str, poc: dict) -> str:
-    header = (f"Subject: {subject}\n\n"
-              f"Intended recipient: {poc.get('name','?')} "
-              f"<{poc.get('email','?')}>, {poc.get('title','?')}")
-    return (f'<pre class="email">{_esc(header)}\n\n{_esc(body)}</pre>')
+# ---- Per-trace reducer -----------------------------------------------------
+
+def _classify(trace: dict) -> dict:
+    """Reduce a trace to the flags the funnel + emails section need."""
+    steps = trace.get("steps", {})
+    qr = steps.get("qualify") or {}
+    poc = steps.get("poc") or {}
+    em = steps.get("email_draft") or {}
+    send = steps.get("send") or {}
+
+    decision = qr.get("decision", "error")
+    qualified = decision in ("qualify", "qualify_and_flag")
+    poc_found = bool(poc.get("email") and poc.get("first_name"))
+    email_drafted = bool(em.get("subject"))
+    sent = bool(send.get("sent"))
+
+    return {
+        "qualified": qualified,
+        "poc_found": poc_found and qualified,
+        "email_drafted": email_drafted and qualified and poc_found,
+        "sent": sent,
+    }
 
 
-def _domain_card(domain: str, trace: dict) -> str:
+# ---- Email card ------------------------------------------------------------
+
+def _email_card(date: str, domain: str, trace: dict) -> str:
+    steps = trace.get("steps", {})
+    em = steps.get("email_draft") or {}
+    send = steps.get("send") or {}
+    poc = steps.get("poc") or {}
+    if not em.get("subject"):
+        return ""
+    sent = send.get("sent")
+    status_label = "sent" if sent else ("dry" if send.get("dry_run") else "not sent")
+    status_class = "status-sent" if sent else "status-other"
+    recipient = (f"Intended recipient: {poc.get('name','?')} "
+                 f"<{poc.get('email','?')}>, {poc.get('title','?')}")
+    return (
+        f'<article class="email-card" data-date="{_esc(date)}">'
+        f'  <header>'
+        f'    <div><strong>{_esc(domain)}</strong>'
+        f'      <span class="muted"> · {_esc(date)} · {em.get("word_count","?")} w</span></div>'
+        f'    <span class="status {status_class}">{status_label}</span>'
+        f'  </header>'
+        f'  <p class="meta">Subject: <strong>{_esc(em.get("subject"))}</strong></p>'
+        f'  <pre class="email">{_esc(recipient)}\n\n{_esc(em.get("body",""))}</pre>'
+        f'</article>'
+    )
+
+
+# ---- Domain card (per-batch detail, unchanged shape) -----------------------
+
+def _domain_card(date: str, domain: str, trace: dict) -> str:
     steps = trace.get("steps", {})
     qr = steps.get("qualify") or {}
     poc = steps.get("poc") or {}
@@ -55,7 +107,6 @@ def _domain_card(domain: str, trace: dict) -> str:
     score_tag = (f'<span class="score">{score}/100</span>'
                  if qr.get("decision") != "drop" and score is not None else "")
 
-    # Gates
     gates_items = []
     for g in qr.get("gates", []):
         v = g.get("verdict", "?")
@@ -70,7 +121,6 @@ def _domain_card(domain: str, trace: dict) -> str:
         )
     gates_html = "<ul>" + "".join(gates_items) + "</ul>"
 
-    # Signals
     sig_items = []
     for s in qr.get("signals", []):
         v = s.get("verdict", "?")
@@ -82,7 +132,6 @@ def _domain_card(domain: str, trace: dict) -> str:
         )
     sig_html = "<ul>" + "".join(sig_items) + "</ul>"
 
-    # PoC + email
     poc_html = ""
     if poc.get("email"):
         poc_html = (
@@ -94,11 +143,6 @@ def _domain_card(domain: str, trace: dict) -> str:
     elif poc.get("reason"):
         poc_html = f'<p class="meta"><strong>PoC:</strong> none — {_esc(poc.get("reason"))}</p>'
 
-    email_html = ""
-    if em.get("subject"):
-        email_html = _email_block(em.get("subject", ""), em.get("body", ""), poc)
-
-    # Drop reason
     drop_html = ""
     if qr.get("decision") == "drop":
         for g in qr.get("gates", []):
@@ -116,7 +160,6 @@ def _domain_card(domain: str, trace: dict) -> str:
         f'  </header>'
         f'  {drop_html}'
         f'  {poc_html}'
-        f'  {email_html}'
         f'  <details><summary>Gates &amp; signals</summary>'
         f'    <h4>Gates</h4>{gates_html}'
         f'    <h4>Signals</h4>{sig_html}'
@@ -125,30 +168,106 @@ def _domain_card(domain: str, trace: dict) -> str:
     )
 
 
-def _batch_block(date: str) -> str:
-    traces = sorted((RUNS / date).glob("*.json"))
-    if not traces:
-        return ""
-    cards = []
-    for p in traces:
-        try:
-            trace = json.loads(p.read_text())
-        except json.JSONDecodeError:
-            continue
-        cards.append(_domain_card(p.stem, trace))
-    return (f'<section class="batch">'
-            f'<h2>{_esc(date)} <span class="count">· {len(cards)} domain(s)</span></h2>'
-            f'{"".join(cards)}'
-            f'</section>')
+# ---- Build pieces ----------------------------------------------------------
 
+def _collect_traces() -> list[tuple[str, str, dict]]:
+    """Return [(date, domain, trace)] sorted newest-date-first then alpha."""
+    out = []
+    if not RUNS.exists():
+        return out
+    for date_dir in sorted((p for p in RUNS.iterdir() if p.is_dir()),
+                           key=lambda p: p.name, reverse=True):
+        for jf in sorted(date_dir.glob("*.json")):
+            try:
+                trace = json.loads(jf.read_text())
+            except json.JSONDecodeError:
+                continue
+            out.append((date_dir.name, jf.stem, trace))
+    return out
+
+
+def _funnel_section() -> str:
+    """Static placeholder markup; JS recomputes numbers from embedded data."""
+    stages = [
+        ("attempted", "Attempted"),
+        ("qualified", "Qualified"),
+        ("poc", "PoC found"),
+        ("sent", "Emails sent"),
+    ]
+    rows = []
+    for key, label in stages:
+        rows.append(
+            f'<div class="funnel-row" data-stage="{key}">'
+            f'  <div class="funnel-label">{label}</div>'
+            f'  <div class="funnel-bar"><div class="funnel-fill" style="width:0%"></div></div>'
+            f'  <div class="funnel-count"><span class="count">0</span>'
+            f'    <span class="pct muted">0%</span></div>'
+            f'</div>'
+        )
+    return (
+        '<section class="funnel">'
+        '  <h2>Funnel</h2>'
+        f'  {"".join(rows)}'
+        '</section>'
+    )
+
+
+def _filter_bar(dates: list[str]) -> str:
+    opts = ['<option value="all">All dates</option>']
+    for d in dates:
+        opts.append(f'<option value="{_esc(d)}">{_esc(d)}</option>')
+    return (
+        '<nav class="filter">'
+        '  <label for="date-filter">Date:</label>'
+        '  <select id="date-filter">'
+        f'   {"".join(opts)}'
+        '  </select>'
+        '</nav>'
+    )
+
+
+def _emails_section(traces: list[tuple[str, str, dict]]) -> str:
+    cards = [_email_card(d, dom, t) for d, dom, t in traces]
+    cards = [c for c in cards if c]
+    if not cards:
+        return ('<section class="emails"><h2>Emails</h2>'
+                '<p class="muted">No emails drafted yet.</p></section>')
+    return (
+        '<section class="emails">'
+        '  <h2>Emails <span class="muted">· most recent first</span></h2>'
+        f' {"".join(cards)}'
+        '</section>'
+    )
+
+
+def _batch_section(date: str, batch_traces: list[tuple[str, dict]]) -> str:
+    cards = [_domain_card(date, dom, t) for dom, t in batch_traces]
+    return (
+        f'<section class="batch" data-date="{_esc(date)}">'
+        f'  <h2>{_esc(date)} <span class="muted">· {len(batch_traces)} domain(s)</span></h2>'
+        f'  {"".join(cards)}'
+        f'</section>'
+    )
+
+
+# ---- Main ------------------------------------------------------------------
 
 def main() -> None:
-    dates = []
-    if RUNS.exists():
-        dates = sorted((p.name for p in RUNS.iterdir() if p.is_dir()), reverse=True)
-    body = "\n".join(_batch_block(d) for d in dates) or "<p>No runs yet.</p>"
+    traces = _collect_traces()
+    dates = sorted({d for d, _, _ in traces}, reverse=True)
 
-    now = dt.datetime.now().isoformat(timespec="minutes")
+    # Per-trace data for JS funnel recomputation
+    js_data = [
+        {"date": d, "domain": dom, **_classify(t)}
+        for d, dom, t in traces
+    ]
+
+    # Group traces by date for per-batch sections
+    by_date: dict[str, list[tuple[str, dict]]] = {}
+    for d, dom, t in traces:
+        by_date.setdefault(d, []).append((dom, t))
+
+    batch_sections = "\n".join(_batch_section(d, by_date[d]) for d in dates)
 
     css = """
       *, *::before, *::after { box-sizing: border-box; }
@@ -157,17 +276,51 @@ def main() -> None:
              line-height: 1.55; background: #fcfbf7; }
       header.top h1 { margin: 0 0 0.25rem; font-weight: 600; letter-spacing: -0.02em; font-size: 1.6rem; }
       header.top p { color: #666; margin: 0; }
-      section.batch { margin: 2.25rem 0; }
-      section.batch h2 { font-size: 1.05rem; font-weight: 500; color: #555;
-                         border-bottom: 1px solid #e5e2db; padding-bottom: 0.3rem;
-                         margin-bottom: 1rem; }
-      .count { color: #999; font-weight: 400; font-size: 0.9rem; }
+
+      /* Filter bar */
+      nav.filter { display: flex; align-items: center; gap: 0.5rem;
+                   margin: 1.5rem 0 1rem; padding: 0.5rem 0.9rem;
+                   background: #fff; border: 1px solid #ebe8e0; border-radius: 8px; }
+      nav.filter label { font-size: 0.85rem; color: #555; font-weight: 500; }
+      nav.filter select { font: inherit; font-size: 0.9rem; border: 1px solid #d9d4c6;
+                          background: #fff; padding: 0.25rem 0.5rem; border-radius: 4px;
+                          color: #1a1a1a; }
+
+      /* Funnel */
+      section.funnel { background: #fff; border: 1px solid #ebe8e0; border-radius: 10px;
+                       padding: 1rem 1.25rem; margin: 1rem 0; }
+      section.funnel h2 { font-size: 1rem; font-weight: 500; color: #555;
+                          margin: 0 0 0.75rem; }
+      .funnel-row { display: grid; grid-template-columns: 110px 1fr 130px;
+                    align-items: center; gap: 0.75rem; margin: 0.5rem 0; }
+      .funnel-label { font-size: 0.9rem; color: #333; font-weight: 500; }
+      .funnel-bar { background: #f3efe3; height: 24px; border-radius: 4px; overflow: hidden; }
+      .funnel-fill { background: linear-gradient(90deg, #0a8f5c, #0ca672); height: 100%;
+                     transition: width 0.35s ease; }
+      .funnel-count { font-size: 0.9rem; color: #333; display: flex; align-items: baseline;
+                      gap: 0.5rem; font-variant-numeric: tabular-nums; }
+      .funnel-count .count { font-weight: 600; font-size: 1rem; }
+
+      /* Shared section headings */
+      section.batch h2, section.emails h2 { font-size: 1.05rem; font-weight: 500;
+          color: #555; border-bottom: 1px solid #e5e2db; padding-bottom: 0.3rem;
+          margin: 2rem 0 1rem; }
+      .muted { color: #999; font-weight: 400; font-size: 0.9rem; }
+
+      /* Emails */
+      article.email-card { padding: 1rem 1.1rem; margin: 0.75rem 0; background: #fff;
+                           border: 1px solid #ebe8e0; border-radius: 10px; }
+      article.email-card header { display: flex; justify-content: space-between;
+                                  align-items: baseline; gap: 1rem; }
+
+      /* Domain cards */
       article.domain { padding: 1rem 1.1rem; margin: 0.75rem 0; background: #fff;
                        border: 1px solid #ece8de; border-radius: 10px;
                        box-shadow: 0 1px 0 rgba(0,0,0,0.02); }
       article.domain header { display: flex; justify-content: space-between;
                               align-items: baseline; gap: 1rem; }
       article.domain h3 { margin: 0; font-size: 1.05rem; font-weight: 600; }
+
       .status { padding: 0.15rem 0.55rem; border-radius: 4px; font-size: 0.8rem;
                 font-weight: 500; letter-spacing: 0.01em; }
       .status-sent { background: #e3f3e0; color: #086b00; }
@@ -201,6 +354,53 @@ def main() -> None:
                text-align: center; }
     """
 
+    js = """
+      const DATA = __DATA__;
+
+      function recomputeFunnel(dateFilter) {
+        const rows = dateFilter === 'all' ? DATA : DATA.filter(d => d.date === dateFilter);
+        const total = rows.length;
+        const qualified = rows.filter(d => d.qualified).length;
+        const pocFound  = rows.filter(d => d.poc_found).length;
+        const sent      = rows.filter(d => d.sent).length;
+
+        const stages = {
+          attempted: total,
+          qualified: qualified,
+          poc: pocFound,
+          sent: sent,
+        };
+        const denom = total || 1;
+        Object.entries(stages).forEach(([key, count]) => {
+          const row = document.querySelector('.funnel-row[data-stage="' + key + '"]');
+          if (!row) return;
+          const pct = Math.round((count / denom) * 100);
+          row.querySelector('.count').textContent = count;
+          row.querySelector('.pct').textContent = total ? pct + '%' : '—';
+          row.querySelector('.funnel-fill').style.width = (total ? pct : 0) + '%';
+        });
+      }
+
+      function applyFilter(val) {
+        document.querySelectorAll('section.batch').forEach(el => {
+          el.style.display = (val === 'all' || el.dataset.date === val) ? '' : 'none';
+        });
+        document.querySelectorAll('article.email-card').forEach(el => {
+          el.style.display = (val === 'all' || el.dataset.date === val) ? '' : 'none';
+        });
+        recomputeFunnel(val);
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        const sel = document.getElementById('date-filter');
+        sel.addEventListener('change', e => applyFilter(e.target.value));
+        applyFilter('all');
+      });
+    """
+    js = js.replace("__DATA__", json.dumps(js_data))
+
+    now = dt.datetime.now().isoformat(timespec="minutes")
+
     doc = (
         '<!doctype html>\n'
         '<html lang="en">\n'
@@ -216,14 +416,18 @@ def main() -> None:
         '  <p>Per-domain defensibility: what qualified, what dropped, which PoC, '
         'which email, source for every claim.</p>\n'
         '</header>\n'
-        f'{body}\n'
+        f'{_filter_bar(dates)}\n'
+        f'{_funnel_section()}\n'
+        f'{_emails_section(traces)}\n'
+        f'{batch_sections}\n'
         f'<footer>Generated {_esc(now)} · static snapshot from <code>runs/</code></footer>\n'
+        f'<script>{js}</script>\n'
         '</body>\n'
         '</html>\n'
     )
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(doc)
-    print(f"Wrote {OUT} ({len(doc):,} chars)")
+    print(f"Wrote {OUT} ({len(doc):,} chars) · {len(traces)} traces across {len(dates)} date(s)")
 
 
 if __name__ == "__main__":
